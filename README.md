@@ -22,3 +22,5 @@
 [Сценарии и критерии приёмки](docs/requirements.md)
 
 [Контракт API и проверка по картам покера](docs/api-contract.md)
+
+[Архитектура](docs/architecture.md) · [OpenAPI](docs/api/openapi.yaml) · [Контракт Tool](docs/tool-contract.md) · [Проверка колодой](docs/contract-check.md)
