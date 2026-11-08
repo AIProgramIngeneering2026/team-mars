@@ -1,0 +1,503 @@
+---
+openapi: 3.0.3
+info:
+  title: API пересказа YouTube-роликов
+  version: 1.0.0
+security:
+- clientToken: []
+paths:
+  "/jobs":
+    post:
+      operationId: createJob
+      summary: Создать Job или получить ответ первого запроса
+      description: Лимит тела 16 КиБ. Ключ действует в пределах клиента. Повтор с
+        тем же ID ролика и режимом возвращает исходный ответ. Другой ID или режим
+        с тем же ключом даёт 409.
+      parameters:
+      - in: header
+        name: Idempotency-Key
+        required: true
+        schema:
+          type: string
+          pattern: "^[A-Za-z0-9_-]{1,128}$"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              "$ref": "#/components/schemas/CreateJob"
+      responses:
+        '202':
+          description: Job создана или возвращён исходный ответ
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+            Location:
+              required: true
+              schema:
+                type: string
+                example: "/jobs/123"
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CreatedJob"
+        '400':
+          description: INVALID_JSON
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: INVALID_JSON
+                  message: INVALID_JSON
+        '401':
+          description: UNAUTHORIZED
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+            WWW-Authenticate:
+              required: true
+              schema:
+                type: string
+                enum:
+                - Bearer
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: UNAUTHORIZED
+                  message: UNAUTHORIZED
+        '409':
+          description: IDEMPOTENCY_CONFLICT
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: IDEMPOTENCY_CONFLICT
+                  message: IDEMPOTENCY_CONFLICT
+        '413':
+          description: REQUEST_TOO_LARGE
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: REQUEST_TOO_LARGE
+                  message: REQUEST_TOO_LARGE
+        '415':
+          description: UNSUPPORTED_MEDIA_TYPE
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: UNSUPPORTED_MEDIA_TYPE
+                  message: UNSUPPORTED_MEDIA_TYPE
+        '422':
+          description: INVALID_FIELD при нарушении схемы, формата ссылки или ключа.
+            UNSUPPORTED_OPERATION с полем operation для неизвестного режима. Если
+            ошибка относится к конкретному полю или заголовку, API указывает его имя.
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+              examples:
+                missingUrl:
+                  value:
+                    error:
+                      code: INVALID_FIELD
+                      message: Укажите ссылку
+                      field: url
+                unknownOperation:
+                  value:
+                    error:
+                      code: UNSUPPORTED_OPERATION
+                      message: Неизвестный режим
+                      field: operation
+  "/jobs/{id}":
+    parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    get:
+      operationId: getJob
+      summary: Прочитать состояние и результат своей Job
+      responses:
+        '200':
+          description: Текущее состояние
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/Job"
+        '401':
+          description: UNAUTHORIZED
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+            WWW-Authenticate:
+              required: true
+              schema:
+                type: string
+                enum:
+                - Bearer
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: UNAUTHORIZED
+                  message: UNAUTHORIZED
+        '404':
+          description: JOB_NOT_FOUND
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: JOB_NOT_FOUND
+                  message: JOB_NOT_FOUND
+  "/jobs/{id}/cancel":
+    parameters:
+    - in: path
+      name: id
+      required: true
+      schema:
+        type: string
+        minLength: 1
+    post:
+      operationId: cancelJob
+      summary: Отменить активную Job или подтвердить отмену
+      responses:
+        '200':
+          description: Job отменена
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/CancelledJob"
+        '401':
+          description: UNAUTHORIZED
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+            WWW-Authenticate:
+              required: true
+              schema:
+                type: string
+                enum:
+                - Bearer
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: UNAUTHORIZED
+                  message: UNAUTHORIZED
+        '404':
+          description: JOB_NOT_FOUND
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: JOB_NOT_FOUND
+                  message: JOB_NOT_FOUND
+        '409':
+          description: JOB_ALREADY_FINISHED
+          headers:
+            Cache-Control:
+              required: true
+              schema:
+                type: string
+                enum:
+                - no-store
+          content:
+            application/json:
+              schema:
+                "$ref": "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: JOB_ALREADY_FINISHED
+                  message: JOB_ALREADY_FINISHED
+components:
+  securitySchemes:
+    clientToken:
+      type: http
+      scheme: bearer
+  schemas:
+    CreateJob:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          maxLength: 2048
+          pattern: "^https://(?:www\\.youtube\\.com/watch\\?|youtu\\.be/[A-Za-z0-9_-]{11}(?:[?#]|$))"
+          description: Для watch требуется ровно один параметр v со значением из 11
+            символов A–Z, a–z, 0–9, дефиса или подчёркивания.
+          example: https://www.youtube.com/watch?v=abcdefghijk
+        operation:
+          type: string
+          enum:
+          - brief
+          - timeline
+          default: brief
+      required:
+      - url
+      additionalProperties: false
+    CreatedJob:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+          - CREATED
+      required:
+      - id
+      - status
+      additionalProperties: false
+    CancelledJob:
+      type: object
+      properties:
+        id:
+          type: string
+          minLength: 1
+        status:
+          type: string
+          enum:
+          - CANCELLED
+      required:
+      - id
+      - status
+      additionalProperties: false
+    Job:
+      oneOf:
+      - type: object
+        properties:
+          id:
+            type: string
+            minLength: 1
+          status:
+            type: string
+            enum:
+            - CREATED
+            - EXTRACTING_TRANSCRIPT
+            - ANALYZING
+            - CANCELLED
+        required:
+        - id
+        - status
+        additionalProperties: false
+      - type: object
+        properties:
+          id:
+            type: string
+            minLength: 1
+          status:
+            type: string
+            enum:
+            - FAILED
+          error:
+            type: object
+            properties:
+              code:
+                type: string
+                enum:
+                - TRANSCRIPT_UNAVAILABLE
+                - TRANSCRIPT_TIMEOUT
+                - TRANSCRIPT_SOURCE_ERROR
+                - TRANSCRIPT_INVALID_RESPONSE
+                - TRANSCRIPT_TOO_LARGE
+                - ANALYSIS_FAILED
+                - ANALYSIS_TIMEOUT
+                - PROCESSING_INTERRUPTED
+              message:
+                type: string
+            required:
+            - code
+            - message
+            additionalProperties: false
+        required:
+        - id
+        - status
+        - error
+        additionalProperties: false
+      - type: object
+        properties:
+          id:
+            type: string
+            minLength: 1
+          status:
+            type: string
+            enum:
+            - COMPLETED
+          result:
+            oneOf:
+            - "$ref": "#/components/schemas/BriefResult"
+            - "$ref": "#/components/schemas/TimelineResult"
+        required:
+        - id
+        - status
+        - result
+        additionalProperties: false
+    BriefResult:
+      type: object
+      properties:
+        points:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          minItems: 1
+      required:
+      - points
+      additionalProperties: false
+    TimelineResult:
+      type: object
+      properties:
+        segments:
+          type: array
+          items:
+            type: object
+            properties:
+              startMs:
+                type: integer
+                minimum: 0
+              points:
+                type: array
+                items:
+                  type: string
+                  minLength: 1
+                minItems: 1
+            required:
+            - startMs
+            - points
+            additionalProperties: false
+          minItems: 1
+      required:
+      - segments
+      additionalProperties: false
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              enum:
+              - UNAUTHORIZED
+              - JOB_NOT_FOUND
+              - INVALID_JSON
+              - REQUEST_TOO_LARGE
+              - UNSUPPORTED_MEDIA_TYPE
+              - INVALID_FIELD
+              - UNSUPPORTED_OPERATION
+              - IDEMPOTENCY_CONFLICT
+              - JOB_ALREADY_FINISHED
+            message:
+              type: string
+            field:
+              type: string
+          required:
+          - code
+          - message
+          additionalProperties: false
+      required:
+      - error
+      additionalProperties: false
