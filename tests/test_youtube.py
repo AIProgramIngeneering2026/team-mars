@@ -58,6 +58,29 @@ class YouTubeAdapterTests(unittest.TestCase):
             self.assertEqual(caught.exception.code, expected)
             self.assertNotIn("private details", str(caught.exception))
 
+    def test_timeout_is_retried_once(self):
+        with patch.object(YouTubeTranscriptSource, "_fetch") as fetch:
+            fetch.side_effect = [
+                ProcessingError("TRANSCRIPT_TIMEOUT", "timeout"),
+                [{"startMs": 0, "text": "ok"}],
+            ]
+            self.assertEqual(YouTubeTranscriptSource().get("abcdefghijk")[0]["text"], "ok")
+            self.assertEqual(fetch.call_count, 2)
+
+    def test_repeated_timeout_stops_after_second_attempt(self):
+        with patch.object(YouTubeTranscriptSource, "_fetch") as fetch:
+            fetch.side_effect = ProcessingError("TRANSCRIPT_TIMEOUT", "timeout")
+            with self.assertRaises(ProcessingError):
+                YouTubeTranscriptSource().get("abcdefghijk")
+            self.assertEqual(fetch.call_count, 2)
+
+    def test_unavailable_transcript_is_not_retried(self):
+        with patch.object(YouTubeTranscriptSource, "_fetch") as fetch:
+            fetch.side_effect = ProcessingError("TRANSCRIPT_UNAVAILABLE", "unavailable")
+            with self.assertRaises(ProcessingError):
+                YouTubeTranscriptSource().get("abcdefghijk")
+            self.assertEqual(fetch.call_count, 1)
+
     def test_sorting_is_stable_and_input_is_unchanged(self):
         raw = [
             {"start": 2.0, "text": "b"},

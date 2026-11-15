@@ -55,6 +55,7 @@ class Dispatcher:
         finally:
             with self._lock:
                 self._current = None
+            self.jobs.maintain()
         return True
 
     def _work(self):

@@ -215,6 +215,21 @@ class URLAndTools(unittest.TestCase):
 
 
 class ResultBoundaryTests(ScenarioFixture):
+    def test_elapsed_analysis_is_failed_before_next_job(self):
+        jobs = self.jobs
+        database = self.path
+
+        class LateRunner:
+            def run(self, tool, transcript):
+                with sqlite3.connect(database) as connection:
+                    connection.execute("UPDATE jobs SET analysis_deadline=0 WHERE status='ANALYZING'")
+                return tool.run(transcript)
+
+        _, created = self.create()
+        dispatcher = Dispatcher(jobs, self.registry, self.source, tool_runner=LateRunner())
+        dispatcher.run_once()
+        self.assertEqual(self.service.get("alice", created["id"])["error"]["code"], "ANALYSIS_TIMEOUT")
+
     def test_invalid_tool_result_does_not_complete_job(self):
         class WrongTool:
             def __init__(self, result):

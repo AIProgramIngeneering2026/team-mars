@@ -72,6 +72,14 @@ def normalize_transcript(records):
 
 class YouTubeTranscriptSource:
     def get(self, video_id):
+        for attempt in range(2):
+            try:
+                return self._fetch(video_id)
+            except ProcessingError as error:
+                if error.code != "TRANSCRIPT_TIMEOUT" or attempt == 1:
+                    raise
+
+    def _fetch(self, video_id):
         try:
             with BoundedSession() as session:
                 api = YouTubeTranscriptApi(http_client=session)
