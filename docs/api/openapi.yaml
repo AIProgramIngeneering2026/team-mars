@@ -31,11 +31,7 @@ paths:
           description: Job создана или возвращён исходный ответ
           headers:
             Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
+              "$ref": "#/components/headers/CacheControl"
             Location:
               required: true
               schema:
@@ -46,132 +42,22 @@ paths:
               schema:
                 "$ref": "#/components/schemas/CreatedJob"
         '400':
-          description: INVALID_JSON
-          headers:
-            Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ErrorResponse"
-              example:
-                error:
-                  code: INVALID_JSON
-                  message: INVALID_JSON
+          "$ref": "#/components/responses/InvalidJson"
         '401':
-          description: UNAUTHORIZED
-          headers:
-            Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
-            WWW-Authenticate:
-              required: true
-              schema:
-                type: string
-                enum:
-                - Bearer
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ErrorResponse"
-              example:
-                error:
-                  code: UNAUTHORIZED
-                  message: UNAUTHORIZED
+          "$ref": "#/components/responses/Unauthorized"
         '409':
-          description: IDEMPOTENCY_CONFLICT
-          headers:
-            Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ErrorResponse"
-              example:
-                error:
-                  code: IDEMPOTENCY_CONFLICT
-                  message: IDEMPOTENCY_CONFLICT
+          "$ref": "#/components/responses/IdempotencyConflict"
         '413':
-          description: REQUEST_TOO_LARGE
-          headers:
-            Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ErrorResponse"
-              example:
-                error:
-                  code: REQUEST_TOO_LARGE
-                  message: REQUEST_TOO_LARGE
+          "$ref": "#/components/responses/RequestTooLarge"
         '415':
-          description: UNSUPPORTED_MEDIA_TYPE
-          headers:
-            Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ErrorResponse"
-              example:
-                error:
-                  code: UNSUPPORTED_MEDIA_TYPE
-                  message: UNSUPPORTED_MEDIA_TYPE
+          "$ref": "#/components/responses/UnsupportedMediaType"
         '422':
-          description: INVALID_FIELD при нарушении схемы, формата ссылки или ключа.
-            UNSUPPORTED_OPERATION с полем operation для неизвестного режима. Если
-            ошибка относится к конкретному полю или заголовку, API указывает его имя.
-          headers:
-            Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ErrorResponse"
-              examples:
-                missingUrl:
-                  value:
-                    error:
-                      code: INVALID_FIELD
-                      message: Укажите ссылку
-                      field: url
-                unknownOperation:
-                  value:
-                    error:
-                      code: UNSUPPORTED_OPERATION
-                      message: Неизвестный режим
-                      field: operation
+          "$ref": "#/components/responses/ValidationFailed"
+        '500':
+          "$ref": "#/components/responses/InternalError"
   "/jobs/{id}":
     parameters:
-    - in: path
-      name: id
-      required: true
-      schema:
-        type: string
-        minLength: 1
+    - "$ref": "#/components/parameters/JobId"
     get:
       operationId: getJob
       summary: Прочитать состояние и результат своей Job
@@ -180,63 +66,20 @@ paths:
           description: Текущее состояние
           headers:
             Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
+              "$ref": "#/components/headers/CacheControl"
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/Job"
         '401':
-          description: UNAUTHORIZED
-          headers:
-            Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
-            WWW-Authenticate:
-              required: true
-              schema:
-                type: string
-                enum:
-                - Bearer
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ErrorResponse"
-              example:
-                error:
-                  code: UNAUTHORIZED
-                  message: UNAUTHORIZED
+          "$ref": "#/components/responses/Unauthorized"
         '404':
-          description: JOB_NOT_FOUND
-          headers:
-            Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ErrorResponse"
-              example:
-                error:
-                  code: JOB_NOT_FOUND
-                  message: JOB_NOT_FOUND
+          "$ref": "#/components/responses/JobNotFound"
+        '500':
+          "$ref": "#/components/responses/InternalError"
   "/jobs/{id}/cancel":
     parameters:
-    - in: path
-      name: id
-      required: true
-      schema:
-        type: string
-        minLength: 1
+    - "$ref": "#/components/parameters/JobId"
     post:
       operationId: cancelJob
       summary: Отменить активную Job или подтвердить отмену
@@ -245,77 +88,186 @@ paths:
           description: Job отменена
           headers:
             Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
+              "$ref": "#/components/headers/CacheControl"
           content:
             application/json:
               schema:
                 "$ref": "#/components/schemas/CancelledJob"
         '401':
-          description: UNAUTHORIZED
-          headers:
-            Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
-            WWW-Authenticate:
-              required: true
-              schema:
-                type: string
-                enum:
-                - Bearer
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ErrorResponse"
-              example:
-                error:
-                  code: UNAUTHORIZED
-                  message: UNAUTHORIZED
+          "$ref": "#/components/responses/Unauthorized"
         '404':
-          description: JOB_NOT_FOUND
-          headers:
-            Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ErrorResponse"
-              example:
-                error:
-                  code: JOB_NOT_FOUND
-                  message: JOB_NOT_FOUND
+          "$ref": "#/components/responses/JobNotFound"
         '409':
-          description: JOB_ALREADY_FINISHED
-          headers:
-            Cache-Control:
-              required: true
-              schema:
-                type: string
-                enum:
-                - no-store
-          content:
-            application/json:
-              schema:
-                "$ref": "#/components/schemas/ErrorResponse"
-              example:
-                error:
-                  code: JOB_ALREADY_FINISHED
-                  message: JOB_ALREADY_FINISHED
+          "$ref": "#/components/responses/JobAlreadyFinished"
+        '500':
+          "$ref": "#/components/responses/InternalError"
 components:
   securitySchemes:
     clientToken:
       type: http
       scheme: bearer
+  headers:
+    CacheControl:
+        required: true
+        description: Всегда `no-store`, чтобы ответ нельзя было отдать из кэша другому клиенту
+        schema:
+          type: string
+          enum:
+          - no-store
+  parameters:
+    JobId:
+      in: path
+      name: id
+      required: true
+      description: Идентификатор Job из ответа на создание
+      schema:
+        type: string
+        minLength: 1
+  responses:
+    InvalidJson:
+      description: Тело невозможно разобрать как JSON
+      headers:
+        Cache-Control:
+          "$ref": "#/components/headers/CacheControl"
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: INVALID_JSON
+              message: Тело запроса не является корректным JSON
+    Unauthorized:
+      description: Токен клиента отсутствует или недействителен
+      headers:
+        Cache-Control:
+          "$ref": "#/components/headers/CacheControl"
+        WWW-Authenticate:
+          required: true
+          schema:
+            type: string
+            enum:
+            - Bearer
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: UNAUTHORIZED
+              message: Требуется токен клиента
+    JobNotFound:
+      description: |
+        Job не найдена. Ответ одинаков для чужой, отсутствующей и некорректной по
+        формату Job, чтобы нельзя было проверить существование чужих ID.
+      headers:
+        Cache-Control:
+          "$ref": "#/components/headers/CacheControl"
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: JOB_NOT_FOUND
+              message: Job не найдена
+    JobAlreadyFinished:
+      description: |
+        Job уже в состоянии `COMPLETED` или `FAILED`. Состояние и результат
+        не изменились.
+      headers:
+        Cache-Control:
+          "$ref": "#/components/headers/CacheControl"
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: JOB_ALREADY_FINISHED
+              message: Job уже завершена и не может быть отменена
+    IdempotencyConflict:
+      description: |
+        Тот же `Idempotency-Key` уже использован этим клиентом для другого ролика
+        или режима. Для нового запроса нужен новый ключ.
+      headers:
+        Cache-Control:
+          "$ref": "#/components/headers/CacheControl"
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: IDEMPOTENCY_CONFLICT
+              message: Ключ уже использован для другого запроса
+    RequestTooLarge:
+      description: Тело превышает 16 КиБ
+      headers:
+        Cache-Control:
+          "$ref": "#/components/headers/CacheControl"
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: REQUEST_TOO_LARGE
+              message: Тело запроса превышает 16 КиБ
+    UnsupportedMediaType:
+      description: Тип тела отсутствует или отличается от `application/json`
+      headers:
+        Cache-Control:
+          "$ref": "#/components/headers/CacheControl"
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: UNSUPPORTED_MEDIA_TYPE
+              message: Ожидается Content-Type application/json
+    ValidationFailed:
+      description: |
+        INVALID_FIELD при нарушении схемы, формата ссылки или ключа.
+        UNSUPPORTED_OPERATION с полем operation для неизвестного режима. Если
+        ошибка относится к конкретному полю или заголовку, API указывает его имя.
+      headers:
+        Cache-Control:
+          "$ref": "#/components/headers/CacheControl"
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/ErrorResponse"
+          examples:
+            missingUrl:
+              value:
+                error:
+                  code: INVALID_FIELD
+                  message: Укажите ссылку
+                  field: url
+            unknownOperation:
+              value:
+                error:
+                  code: UNSUPPORTED_OPERATION
+                  message: Неизвестный режим
+                  field: operation
+    InternalError:
+      description: |
+        Непредвиденный сбой сервиса. Внутренние детали (текст исключения, запросы
+        к хранилищу) в ответ не попадают. При создании Job повтор с тем же
+        `Idempotency-Key` безопасен: Job создаётся не более одного раза.
+      headers:
+        Cache-Control:
+          "$ref": "#/components/headers/CacheControl"
+      content:
+        application/json:
+          schema:
+            "$ref": "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: Внутренняя ошибка сервиса
   schemas:
     CreateJob:
       type: object
@@ -324,7 +276,7 @@ components:
           type: string
           format: uri
           maxLength: 2048
-          pattern: "^https://(?:www\\.youtube\\.com/watch\\?|youtu\\.be/[A-Za-z0-9_-]{11}(?:[?#]|$))"
+          pattern: "^https://(?:(?:www\\.)?youtube\\.com/watch\\?|youtu\\.be/[A-Za-z0-9_-]{11}(?:[?#]|$))"
           description: Для watch требуется ровно один параметр v со значением из 11
             символов A–Z, a–z, 0–9, дефиса или подчёркивания.
           example: https://www.youtube.com/watch?v=abcdefghijk
@@ -345,8 +297,12 @@ components:
           minLength: 1
         status:
           type: string
+          description: |
+            `CREATED` для нового запроса, `COMPLETED` для найденного готового
+            результата (S5).
           enum:
           - CREATED
+          - COMPLETED
       required:
       - id
       - status
@@ -440,6 +396,7 @@ components:
       properties:
         points:
           type: array
+          description: Тезисы ролика в порядке следования
           items:
             type: string
             minLength: 1
@@ -452,6 +409,9 @@ components:
       properties:
         segments:
           type: array
+          description: |
+            Отрезки в порядке возрастания `startMs`. Значения `startMs` не
+            повторяются и взяты из таймкодов субтитров.
           items:
             type: object
             properties:
@@ -490,6 +450,7 @@ components:
               - UNSUPPORTED_OPERATION
               - IDEMPOTENCY_CONFLICT
               - JOB_ALREADY_FINISHED
+              - INTERNAL_ERROR
             message:
               type: string
             field:
