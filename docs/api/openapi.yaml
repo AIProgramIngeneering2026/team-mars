@@ -276,7 +276,7 @@ components:
           type: string
           format: uri
           maxLength: 2048
-          pattern: "^https://(?:www\\.youtube\\.com/watch\\?|youtu\\.be/[A-Za-z0-9_-]{11}(?:[?#]|$))"
+          pattern: "^https://(?:(?:www\\.)?youtube\\.com/watch\\?|youtu\\.be/[A-Za-z0-9_-]{11}(?:[?#]|$))"
           description: Для watch требуется ровно один параметр v со значением из 11
             символов A–Z, a–z, 0–9, дефиса или подчёркивания.
           example: https://www.youtube.com/watch?v=abcdefghijk
