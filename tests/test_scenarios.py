@@ -3,6 +3,7 @@ import sqlite3
 import tempfile
 import threading
 import unittest
+from contextlib import closing
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -80,7 +81,7 @@ class Scenarios(ScenarioFixture):
         with ThreadPoolExecutor(max_workers=8) as pool:
             replies = list(pool.map(lambda _: self.create(), range(16)))
         self.assertEqual(len({reply[1]["id"] for reply in replies}), 1)
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path)) as connection, connection:
             self.assertEqual(connection.execute("SELECT count(*) FROM jobs").fetchone()[0], 1)
 
     def test_data_and_idempotency_survive_reopening_storage(self):
@@ -148,7 +149,7 @@ class Scenarios(ScenarioFixture):
     def test_expired_lease_is_failed_and_stale_worker_cannot_write(self):
         _, created = self.create()
         job, token = self.jobs.claim()
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path)) as connection, connection:
             connection.execute("UPDATE jobs SET lease_until=0 WHERE id=?", (job.id,))
         SQLiteJobs(self.path).maintain((job.id, token))
         self.assertEqual(self.service.get("alice", created["id"])["error"]["code"], "PROCESSING_INTERRUPTED")
@@ -158,7 +159,7 @@ class Scenarios(ScenarioFixture):
         _, created = self.create()
         job, token = self.jobs.claim()
         self.jobs.transition(job.id, token, "ANALYZING")
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path)) as connection, connection:
             connection.execute("UPDATE jobs SET analysis_deadline=0 WHERE id=?", (job.id,))
         self.assertFalse(self.jobs.transition(job.id, token, "COMPLETED", result={"points": ["Поздно"]}))
         self.jobs.maintain((job.id, token))
@@ -173,7 +174,7 @@ class Scenarios(ScenarioFixture):
         ]
         for payload, code in cases:
             self.assert_error(422, code, lambda: self.service.create("alice", "bad", payload))
-        with sqlite3.connect(self.path) as connection:
+        with closing(sqlite3.connect(self.path)) as connection:
             self.assertEqual(connection.execute("SELECT count(*) FROM jobs").fetchone()[0], 0)
 
 
@@ -221,7 +222,7 @@ class ResultBoundaryTests(ScenarioFixture):
 
         class LateRunner:
             def run(self, tool, transcript):
-                with sqlite3.connect(database) as connection:
+                with closing(sqlite3.connect(database)) as connection, connection:
                     connection.execute("UPDATE jobs SET analysis_deadline=0 WHERE status='ANALYZING'")
                 return tool.run(transcript)
 

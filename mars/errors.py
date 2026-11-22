@@ -13,6 +13,7 @@ class ApiError(Exception):
 
 
 class ProcessingError(Exception):
-    def __init__(self, code, message):
+    def __init__(self, code, message, field=None):
         super().__init__(message)
         self.code = code
+        self.field = field
