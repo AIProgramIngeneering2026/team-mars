@@ -1,6 +1,8 @@
 from dataclasses import dataclass, replace
 from typing import Optional
 
+from .errors import JobStateError, JobTransitionError
+
 ACTIVE = ("CREATED", "EXTRACTING_TRANSCRIPT", "ANALYZING")
 TRANSITIONS = {
     "CREATED": {"EXTRACTING_TRANSCRIPT", "CANCELLED"},
@@ -53,16 +55,35 @@ class Job:
     result: Optional[dict] = None
     error: Optional[dict] = None
 
+    def __post_init__(self):
+        # Проверяем также снимки, восстановленные хранилищем, и новые Job S5.
+        if not isinstance(self.status, str) or self.status not in TRANSITIONS:
+            raise JobStateError("status", f"Неизвестное состояние Job: {self.status!r}")
+        if (self.status == "COMPLETED") != (self.result is not None):
+            raise JobStateError("result", "Результат обязателен только при COMPLETED")
+        if (self.status == "FAILED") != (self.error is not None):
+            raise JobStateError("error", "Ошибка обязательна только при FAILED")
+        if self.status == "FAILED":
+            if (not isinstance(self.error, dict)
+                    or any(not isinstance(self.error.get(key), str) or not self.error[key].strip()
+                           for key in ("code", "message"))):
+                raise JobStateError("error", "Ошибка должна содержать непустые code и message")
+        if self.status == "COMPLETED":
+            self._validate_result()
+
+    def _validate_result(self, source_starts=None):
+        try:
+            validate_result(self.operation, self.result, source_starts)
+        except ValueError as error:
+            raise JobStateError("result", str(error)) from error
+
     def transition(self, status, result=None, error=None, source_starts=None):
-        if status not in TRANSITIONS[self.status]:
-            raise ValueError("Запрещённый переход Job")
-        if (status == "COMPLETED") != (result is not None):
-            raise ValueError("Результат допустим только при COMPLETED")
-        if (status == "FAILED") != (error is not None):
-            raise ValueError("Ошибка обязательна только при FAILED")
-        if status == "COMPLETED":
-            validate_result(self.operation, result, source_starts)
-        return replace(self, status=status, result=result, error=error)
+        if not isinstance(status, str) or status not in TRANSITIONS[self.status]:
+            raise JobTransitionError(self.status, status)
+        updated = replace(self, status=status, result=result, error=error)
+        if status == "COMPLETED" and source_starts is not None:
+            updated._validate_result(source_starts)
+        return updated
 
     def public(self):
         body = {"id": self.id, "status": self.status}
