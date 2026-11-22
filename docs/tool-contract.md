@@ -24,9 +24,17 @@ type BriefResult    = { points: string[] }                              // 1+ н
 type TimelineResult = { segments: { startMs: integer >= 0,
                                     points: string[] }[] }              // 1+ отрезков, в каждом 1+ тезисов
 
-type ToolError = { code: "INVALID_TRANSCRIPT" | "ANALYSIS_FAILED",
-                   message: string }                // для журнала, клиенту не показывается
+type ToolError = {
+    code: "INVALID_TRANSCRIPT" | "ANALYSIS_FAILED",
+    message: string,
+    field?: string
+}
 ```
+Поле `field` — необязательное. Используется для внутренней диагностики некорректных параметров Tool.
+
+Для ошибок `INVALID_TRANSCRIPT` указывается конкретное поле, например `transcript[0].text` или `transcript[1].startMs`.
+
+Dispatcher записывает подробности ошибки в журнал, но не раскрывает их клиенту. Публичная ошибка остаётся `ANALYSIS_FAILED` согласно контракту.
 
 Данные отдельного запуска передаются только аргументом `run(transcript)`. Режим, ID ролика и настройки в `run` не передаются. Настройки Tool получает при создании в точке сборки.
 

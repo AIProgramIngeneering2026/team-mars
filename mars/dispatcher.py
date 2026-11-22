@@ -21,41 +21,69 @@ class Dispatcher:
         claimed = self.jobs.claim()
         if claimed is None:
             return False
+
         job, token = claimed
         with self._lock:
             self._current = (job.id, token)
+
         try:
             transcript = self.source.get(job.video_id)
             if not self.jobs.transition(job.id, token, "ANALYZING"):
                 return True
+
             tool = self.registry.get(job.operation)
+
             if self.tool_runner is None:
                 result = tool.run(transcript)
             else:
                 result = self.tool_runner.run(tool, transcript)
+
             self.jobs.transition(
-                job.id, token, "COMPLETED", result=result,
+                job.id,
+                token,
+                "COMPLETED",
+                result=result,
                 source_starts={segment["startMs"] for segment in transcript},
             )
+
         except ProcessingError as error:
+            # field is diagnostic information: it must not be exposed in the Job API.
+            logger.warning(
+                "Job %s: %s (field=%s): %s",
+                job.id,
+                error.code,
+                error.field,
+                error,
+            )
             code = error.code
-            if code == "INVALID_TRANSCRIPT":
+            if code in ("INVALID_TRANSCRIPT", "UNKNOWN_OPERATION"):
                 code = "ANALYSIS_FAILED"
-            logger.warning("Job %s: %s (%s)", job.id, code, error)
+
             message = "Не удалось выполнить анализ"
             if code.startswith("TRANSCRIPT_"):
                 message = "Не удалось получить субтитры"
-            self.jobs.transition(job.id, token, "FAILED", error={"code": code, "message": message})
+
+            self.jobs.transition(
+                job.id,
+                token,
+                "FAILED",
+                error={"code": code, "message": message},
+            )
+
         except Exception:
             logger.exception("Ошибка обработки Job %s", job.id)
             self.jobs.transition(
-                job.id, token, "FAILED",
+                job.id,
+                token,
+                "FAILED",
                 error={"code": "ANALYSIS_FAILED", "message": "Не удалось выполнить анализ"},
             )
+
         finally:
             with self._lock:
                 self._current = None
             self.jobs.maintain()
+
         return True
 
     def _work(self):
