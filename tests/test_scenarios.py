@@ -83,6 +83,16 @@ class Scenarios(ScenarioFixture):
         with sqlite3.connect(self.path) as connection:
             self.assertEqual(connection.execute("SELECT count(*) FROM jobs").fetchone()[0], 1)
 
+    def test_z1_only_one_worker_can_claim_the_same_job(self):
+        _, created = self.create()
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            claims = list(pool.map(lambda _: self.jobs.claim(), range(2)))
+        successful = [claim for claim in claims if claim is not None]
+        self.assertEqual(len(successful), 1)
+        job, _ = successful[0]
+        self.assertEqual(job.id, created["id"])
+        self.assertEqual(job.status, "EXTRACTING_TRANSCRIPT")
+
     def test_data_and_idempotency_survive_reopening_storage(self):
         _, first = self.create()
         self.dispatcher.run_once()

@@ -2,6 +2,8 @@ import re
 from typing import List, Protocol
 
 from .errors import ProcessingError
+# Сохраняем прежний импорт mars.tools.Registry для сборки S1 и её тестов.
+from .registry import Registry
 
 
 def validate_transcript(transcript):
@@ -53,14 +55,3 @@ class TimelineDigestTool:
             {"startMs": segments[0]["startMs"], "points": extract_points(segments)}
             for segments in groups.values()
         ]}
-
-
-class Registry:
-    def __init__(self, tools):
-        self._tools = dict(tools)
-
-    def operations(self):
-        return tuple(self._tools)
-
-    def get(self, operation):
-        return self._tools[operation]
