@@ -8,8 +8,8 @@ from pathlib import Path
 from .domain import ACTIVE, Job
 from .errors import ApiError
 
-LEASE_SECONDS = 60
-ANALYSIS_SECONDS = 60
+from .job_store import LEASE_SECONDS, ANALYSIS_SECONDS
+
 
 
 class SQLiteJobs:
